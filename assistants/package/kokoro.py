@@ -8,7 +8,8 @@ from elevenlabslib import *
 
 
 class Kokoro:
-    def __init__(self, personality:str, keys:str, voice_name="Rachel", device_index=None, gptmodel:str="gpt-3.5-turbo"):
+    def __init__(self, personality: str, keys: str, voice_name="Rachel", device_index=None,
+                 gptmodel: str = "gpt-3.5-turbo"):
         '''
         Initialize the ChatGPT class with all of the necessary arguments
 
@@ -27,7 +28,7 @@ class Kokoro:
         self.engine = pyttsx3.init()
         # self.engine.setProperty('rate', 180) #200 is the default speed, this makes it slower
         self.voices = self.engine.getProperty('voices')
-        self.engine.setProperty('voice', self.voices[1].id) # 0 for male, 1 for female
+        self.engine.setProperty('voice', self.voices[1].id)  # 0 for male, 1 for female
 
         # GPT Set-Up
         self.OPENAI_KEY = keys['OPENAI_KEY']
@@ -36,45 +37,46 @@ class Kokoro:
 
         # Eleven Labs Set-up
         try:
-            self.EL_KEY = keys['EL_KEY'] #Eleven labs
+            self.EL_KEY = keys['EL_KEY']  # Eleven labs
             self.user = ElevenLabsUser(f"{self.EL_KEY}")
             try:
-                self.voice = self.user.get_voices_by_name(voice_name)[0]  # This is a list because multiple voices can have the same name
+                self.voice = self.user.get_voices_by_name(voice_name)[
+                    0]  # This is a list because multiple voices can have the same name
             except:
                 print("Setting default voice to Rachel")
                 print("(If you set a voice that you made, make sure it matches exactly)"
-                        " as what's on the Eleven Labs page.  Capitilzation matters here.")
-                self.voice = self.user.get_voices_by_name("Rachel")[0] 
+                      " as what's on the Eleven Labs page.  Capitilzation matters here.")
+                self.voice = self.user.get_voices_by_name("Rachel")[0]
         except:
             print("No API Key set for Eleven Labs")
 
         # Mic Set-up
         self.r = sr.Recognizer()
-        self.r.dynamic_energy_threshold=False
-        self.r.energy_threshold = 150 # 300 is the default value of the SR library
+        self.r.dynamic_energy_threshold = False
+        self.r.energy_threshold = 150  # 300 is the default value of the SR library
         self.mic = sr.Microphone(device_index=device_index)
 
         # Set-up the system of chatGPT
         with open(personality, "r", encoding="utf-8") as file:
             self.mode = file.read()
 
-        self.messages  = [
+        self.messages = [
             {"role": "system", "content": f"{self.mode}"}
         ]
 
- # Methods the assistants rely on------------------------------------------------------------------------------------------------------------------
+    # Methods the assistants rely on------------------------------------------------------------------------------------------------------------------
 
     # This is to only initiate a conversation if you say "hey"
-    def start_conversation(self, keyword = 'hey'):
+    def start_conversation(self, keyword='ciao'):
         while True:
             with self.mic as source:
-                print("Adjusting to envionrment sound...\n")
+                print("Adjusting to environment sound...\n")
                 self.r.adjust_for_ambient_noise(source, duration=1.0)
                 print("Listening: ")
                 audio = self.r.listen(source)
                 print("Done listening.")
                 try:
-                    user_input = self.r.recognize_google(audio)
+                    user_input = self.r.recognize_google(audio, language="it-IT")
                     print(f"Google heard: {user_input}\n")
                     user_input = user_input.split()
                 except:
@@ -95,16 +97,16 @@ class Kokoro:
             see what parameters are available to use.
         '''
         completion = openai.ChatCompletion.create(
-                model=self.gptmodel,
-                messages=self.messages,
-                temperature=0.8
-            )
+            model=self.gptmodel,
+            messages=self.messages,
+            temperature=0.8
+        )
         response = completion.choices[0].message.content
         if append:
             self.messages.append({"role": "assistant", "content": response})
         print(f"\n{response}\n")
         return response
-    
+
     def generate_voice(self, response, useEL):
         if useEL == True:
             self.voice.generate_and_play_audio(f"{response}", playInBackground=False)
@@ -112,7 +114,7 @@ class Kokoro:
             self.engine.say(f"{response}")
             self.engine.runAndWait()
 
-    def listen_for_voice(self, timeout:int|None=5):
+    def listen_for_voice(self, timeout: int | None = 5):
         with self.mic as source:
             print("\n Listening...")
             self.r.adjust_for_ambient_noise(source, duration=0.5)
@@ -122,7 +124,7 @@ class Kokoro:
                 return []
         print("no longer listening")
         return audio
-    
+
     def whisper(self, audio):
         '''
         Uses the Whisper API to generate audio for the response text. 
@@ -133,8 +135,9 @@ class Kokoro:
         Returns:
             response (str): text transcription of what Whisper deciphered
         '''
-        self.r.recognize_google(audio) # raise exception for bad/silent audio
-        with open('speech.wav','wb') as f:
+        print("audio", audio)
+        self.r.recognize_google(audio, language="it-IT")  # raise exception for bad/silent audio
+        with open('speech.wav', 'wb') as f:
             f.write(audio.get_wav_data())
         speech = open('speech.wav', 'rb')
         model_id = "whisper-1"
@@ -142,5 +145,6 @@ class Kokoro:
             model=model_id,
             file=speech
         )
+        print("whisper token usage:", completion)
         response = completion['text']
         return response

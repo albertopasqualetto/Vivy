@@ -10,7 +10,8 @@ foldername = "assistantP"
 personality = "assistantP"
 voicename = "Rem"
 useEL = False
-usewhisper = True
+# usewhisper = True
+usewhisper = False
 
 # This code block only checks if it's being ran as a python script or as an exe
 if getattr(sys, 'frozen', False):
